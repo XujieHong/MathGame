@@ -2,6 +2,10 @@ package com.speakin.recorder.ui;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -22,11 +26,17 @@ public class MathPkActivity extends Activity {
     private TextView mathFormula;
     private TextView mathAnswer;
     private TextView mathFormulaHistory;
+    private TextView mathScore;
     private Button startButton;
     private MathProblems mp = new MathProblems();
     private int answer = 0;
     private String mMathFormula = "";
 
+    private int score = 0;
+
+    private boolean answerState = true;
+
+    private MessageHandler messageHandler;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -42,12 +52,15 @@ public class MathPkActivity extends Activity {
         mathFormula = findViewById(R.id.formula);
         mathAnswer = findViewById(R.id.answer);
         mathFormulaHistory = findViewById(R.id.history);
+        mathScore = findViewById(R.id.score);
 
         int startID = R.id.num0;
         for (int i = 0; i < buttonCount; i++){
             findViewById(startID + i).setOnClickListener(numButtonListener);
         }
         findViewById(R.id.clear).setOnClickListener(numButtonListener);
+
+        messageHandler = new MessageHandler(Looper.getMainLooper());
     }
 
     @Override
@@ -60,7 +73,7 @@ public class MathPkActivity extends Activity {
         public void onClick(View view) {
             mMathFormula = mp.createMathFormula();
             mathFormula.setText(mMathFormula);
-
+            mathAnswer.setText("");
             sendBook();
         }
     };
@@ -68,34 +81,30 @@ public class MathPkActivity extends Activity {
     View.OnClickListener numButtonListener = new View.OnClickListener(){
         @Override
         public void onClick(View view) {
-            String strAnswer = "";
+            if(answerState){
+                String strAnswer = "";
 
-            switch(view.getId()) {
-                case R.id.clear:
-                    answer = 0;
-                    break;
-                default:
-                    if(answer < 10){
-                        answer = answer * 10 + view.getId() - R.id.num0;
-                    }
-                    break;
-            }
+                switch(view.getId()) {
+                    case R.id.clear:
+                        answer = 0;
+                        break;
+                    default:
+                        if(answer < 10){
+                            answer = answer * 10 + view.getId() - R.id.num0;
+                        }
+                        break;
+                }
 
-            if(view.getId() == R.id.clear) {
-                strAnswer = "";
-            }else {
-                strAnswer = "" + answer;
-            }
+                if(view.getId() == R.id.clear) {
+                    strAnswer = "";
+                }else {
+                    strAnswer = "" + answer;
+                }
 
-            mathAnswer.setText(strAnswer);
-            if (answer == mp.getAnswer()){
-                String history = mMathFormula + answer;
-                mathFormulaHistory.setText(history);
-                mMathFormula = mp.createMathFormula();
-                mathFormula.setText(mMathFormula);
-                answer = 0;
-                mathAnswer.setText("");
-                sendBook();
+                mathAnswer.setText(strAnswer);
+                if (answer == mp.getAnswer()){
+                    getRightAnswer();
+                }
             }
         }
     };
@@ -114,5 +123,71 @@ public class MathPkActivity extends Activity {
         mp.setMathFormula(book.getX(), book.getY(), book.getZ(), mMathFormula);
 
         mathFormula.setText(mMathFormula);
+        mathAnswer.setText("");
+        answerState = true;
+    }
+
+    public void onRightAnswerSignalReceived(){
+        answerState = false;
+    }
+
+    private void getRightAnswer(){
+
+        MainActivity.instance.sendRightAnswerSignal();
+        answerState = false;
+
+
+
+        new Thread() {
+            @Override
+            public void run() {
+                super.run();
+                try {
+                    Thread.sleep(1000);//休眠3秒
+
+                    answerState = true;
+
+                    Message msg = messageHandler.obtainMessage();
+
+                    Bundle b = new Bundle();
+                    b.putInt("signal", 777);
+                    msg.setData(b);
+
+                    messageHandler.sendMessage(msg);
+
+                }catch (Exception e){
+                    Log.e("KenHong", e.getMessage());
+                }
+            }
+        }.start();
+    }
+
+    class MessageHandler extends Handler {
+        public MessageHandler() {
+
+        }
+
+        public MessageHandler(Looper L) {
+            super(L);
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+        // 这里用于更新UI
+            Bundle b = msg.getData();
+            int data = b.getInt("signal");
+
+            if(data == 777) {
+                score++;
+                String history = mMathFormula + answer;
+                mathFormulaHistory.setText(history);
+                mMathFormula = mp.createMathFormula();
+                mathFormula.setText(mMathFormula);
+                answer = 0;
+                mathAnswer.setText("");
+                mathScore.setText("" + score);
+                sendBook();
+            }
+        }
     }
 }

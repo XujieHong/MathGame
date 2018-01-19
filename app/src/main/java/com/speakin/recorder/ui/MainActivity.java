@@ -65,7 +65,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onReceiveMessage(String message) {
                 textView2.setText("message: " + message);
-                onMathActivityMessageReceived(message);
+                if(message.compareTo("Grrrr") == 0){
+                    onMathActivityRightAnswerSignalReceived();
+                }else{
+                    onMathActivityMessageReceived(message);
+                }
             }
         });
 
@@ -88,7 +92,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onMessageReceive(String clientSocket, String message) {
                 textView2.setText("message: " + message);
-                onMathActivityMessageReceived(message);
+                if(message.compareTo("Grrrr") == 0){
+                    onMathActivityRightAnswerSignalReceived();
+                }else{
+                    onMathActivityMessageReceived(message);
+                }
             }
 
             @Override
@@ -192,6 +200,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void sendRightAnswerSignal(){
+        if (isMaster) {
+            masterControlManager.send("Grrrr");
+        } else {
+            slaveControlManager.send("Grrrr");
+        }
+    }
+
     private void onMathActivityMessageReceived(String xmlStr){
         if(MathPkActivity.instance != null){
             PullBookParser parser = new PullBookParser();
@@ -207,5 +223,9 @@ public class MainActivity extends AppCompatActivity {
                 Log.e("KenHong", e.getMessage());
             }
         }
+    }
+
+    private void onMathActivityRightAnswerSignalReceived(){
+        MathPkActivity.instance.onRightAnswerSignalReceived();
     }
 }

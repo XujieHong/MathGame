@@ -65,8 +65,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onReceiveMessage(String message) {
                 textView2.setText("message: " + message);
-                if(message.compareTo("Grrrr") == 0){
-                    onMathActivityRightAnswerSignalReceived();
+                if(message.compareTo("Mrrrr") == 0){
+                    onMathActivityRightAnswerSignalReceived(true);
+                }else if(message.compareTo("Srrrr") == 0){
+                    onMathActivityRightAnswerSignalReceived(false);
                 }else{
                     onMathActivityMessageReceived(message);
                 }
@@ -92,8 +94,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onMessageReceive(String clientSocket, String message) {
                 textView2.setText("message: " + message);
-                if(message.compareTo("Grrrr") == 0){
-                    onMathActivityRightAnswerSignalReceived();
+
+                if(message.compareTo("Mrrrr") == 0){
+                    onMathActivityRightAnswerSignalReceived(true);
+                }else if(message.compareTo("Srrrr") == 0){
+                    onMathActivityRightAnswerSignalReceived(false);
                 }else{
                     onMathActivityMessageReceived(message);
                 }
@@ -112,6 +117,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 masterControlManager.start();
                 isMaster = true;
+
             }
         });
 
@@ -161,6 +167,16 @@ public class MainActivity extends AppCompatActivity {
 //                setContentView(tempview);
 
                 Intent intent = new Intent(getApplicationContext(), MathPkActivity.class);
+
+
+                Bundle bundle = new Bundle();
+                if(isMaster){
+                    bundle.putInt("isMaster", 1);
+                }else {
+                    bundle.putInt("isMaster", 0);
+                }
+                intent.putExtras(bundle);
+
                 startActivity(intent);
             }
         });
@@ -202,9 +218,9 @@ public class MainActivity extends AppCompatActivity {
 
     public void sendRightAnswerSignal(){
         if (isMaster) {
-            masterControlManager.send("Grrrr");
+            masterControlManager.send("Mrrrr");
         } else {
-            slaveControlManager.send("Grrrr");
+            slaveControlManager.send("Srrrr");
         }
     }
 
@@ -225,7 +241,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void onMathActivityRightAnswerSignalReceived(){
-        MathPkActivity.instance.onRightAnswerSignalReceived();
+    private void onMathActivityRightAnswerSignalReceived(boolean isMaster){
+        MathPkActivity.instance.onRightAnswerSignalReceived(isMaster);
     }
 }

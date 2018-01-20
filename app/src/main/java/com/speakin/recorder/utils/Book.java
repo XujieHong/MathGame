@@ -7,6 +7,7 @@ package com.speakin.recorder.utils;
 public class Book {
     private int x, y, z;
     private String formula;
+    private int score;
 
     public int getX() {
         return x;
@@ -38,6 +39,14 @@ public class Book {
 
     public void setFormula(String formula) {
         this.formula = formula;
+    }
+
+    public int getScore() {
+        return score;
+    }
+
+    public void setScore(int score) {
+        this.score = score;
     }
 
     @Override

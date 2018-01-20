@@ -49,53 +49,9 @@ public class PullBookParser implements BookParser {
                     } else if (parser.getName().equals("formula")) {
                         eventType = parser.next();
                         book.setFormula(parser.getText());
-                    }
-                    break;
-                case XmlPullParser.END_TAG:
-                    if (parser.getName().equals("book")) {
-                        books.add(book);
-                        book = null;
-                    }
-                    break;
-            }
-            eventType = parser.next();
-        }
-        return books;
-    }
-
-
-    @Override
-    public List<Book> parse(InputStream is) throws Exception {
-        List<Book> books = null;
-        Book book = null;
-
-//      XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
-//      XmlPullParser parser = factory.newPullParser();
-
-        XmlPullParser parser = Xml.newPullParser(); //由android.util.Xml创建一个XmlPullParser实例
-        parser.setInput(is, "UTF-8");               //设置输入流 并指明编码方式
-
-        int eventType = parser.getEventType();
-        while (eventType != XmlPullParser.END_DOCUMENT) {
-            switch (eventType) {
-                case XmlPullParser.START_DOCUMENT:
-                    books = new ArrayList<Book>();
-                    break;
-                case XmlPullParser.START_TAG:
-                    if (parser.getName().equals("book")) {
-                        book = new Book();
-                    } else if (parser.getName().equals("x")) {
+                    } else if (parser.getName().equals("isMaster")) {
                         eventType = parser.next();
-                        book.setX(Integer.parseInt(parser.getText()));
-                    } else if (parser.getName().equals("y")) {
-                        eventType = parser.next();
-                        book.setY(Integer.parseInt(parser.getText()));
-                    } else if (parser.getName().equals("z")) {
-                        eventType = parser.next();
-                        book.setZ(Integer.parseInt(parser.getText()));
-                    } else if (parser.getName().equals("formula")) {
-                        eventType = parser.next();
-                        book.setFormula(parser.getText());
+                        book.setScore(Integer.parseInt(parser.getText()));
                     }
                     break;
                 case XmlPullParser.END_TAG:
@@ -136,6 +92,10 @@ public class PullBookParser implements BookParser {
             serializer.startTag("", "formula");
             serializer.text(book.getFormula());
             serializer.endTag("", "formula");
+
+            serializer.startTag("", "isMaster");
+            serializer.text(book.getScore() + "");
+            serializer.endTag("", "isMaster");
 
             serializer.endTag("", "book");
         }

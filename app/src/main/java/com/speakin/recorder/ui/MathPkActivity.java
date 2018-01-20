@@ -32,22 +32,36 @@ public class MathPkActivity extends Activity {
     private int answer = 0;
     private String mMathFormula = "";
 
+    private int isMaster = 0;
+
     private int score = 0;
 
     private boolean answerState = true;
 
     private MessageHandler messageHandler;
 
+    private int slaveScore = 0;
+    //private int masterScore = 0;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        //新页面接收数据
+        Bundle bundle = this.getIntent().getExtras();
+        //接收name值
+        isMaster = bundle.getInt("isMaster");
 
         instance = this;
 
         setContentView(R.layout.math_pk);
 
         startButton = findViewById(R.id.start);
-        startButton.setOnClickListener(startListener);
+        if(isMaster == 1) {
+            startButton.setOnClickListener(startListener);
+        }else {
+            startButton.setEnabled(false);
+        }
 
         mathFormula = findViewById(R.id.formula);
         mathAnswer = findViewById(R.id.answer);
@@ -103,6 +117,10 @@ public class MathPkActivity extends Activity {
 
                 mathAnswer.setText(strAnswer);
                 if (answer == mp.getAnswer()){
+                    if(isMaster == 1){
+                        MainActivity.instance.sendRightAnswerSignal();
+                        score++;
+                    }
                     getRightAnswer();
                 }
             }
@@ -115,28 +133,50 @@ public class MathPkActivity extends Activity {
         book.setY(mp.getY());
         book.setZ(mp.getZ());
         book.setFormula(mp.getFormula());
+        book.setScore(slaveScore);
         MainActivity.instance.sendBook(book);
+        slaveScore = 0;
     }
 
     public void onBookReceived(Book book){
         mMathFormula = book.getFormula();
         mp.setMathFormula(book.getX(), book.getY(), book.getZ(), mMathFormula);
 
+        // Slave score
+        if(book.getScore() == 1){
+            score++;
+            mathScore.setText("" + score);
+        }
+
+        answer = 0;
+
         mathFormula.setText(mMathFormula);
         mathAnswer.setText("");
         answerState = true;
     }
 
-    public void onRightAnswerSignalReceived(){
-        answerState = false;
+    public void onRightAnswerSignalReceived(boolean isMaster){
+        if(isMaster){
+            Log.d("KenHong", "onRightAnswerSignalReceived" + "  = master");
+        }else{
+            Log.d("KenHong", "onRightAnswerSignalReceived" + "  = slave");
+        }
+
+        if(!isMaster && answerState){
+            slaveScore = 1;
+            getRightAnswer();
+        }
+
+        if(isMaster && answerState){
+            answerState = false;
+        }
+
     }
 
     private void getRightAnswer(){
 
         MainActivity.instance.sendRightAnswerSignal();
         answerState = false;
-
-
 
         new Thread() {
             @Override
@@ -163,10 +203,6 @@ public class MathPkActivity extends Activity {
     }
 
     class MessageHandler extends Handler {
-        public MessageHandler() {
-
-        }
-
         public MessageHandler(Looper L) {
             super(L);
         }
@@ -177,12 +213,15 @@ public class MathPkActivity extends Activity {
             Bundle b = msg.getData();
             int data = b.getInt("signal");
 
-            if(data == 777) {
-                score++;
+
+            if((data == 777) && (isMaster == 1)) {
                 String history = mMathFormula + answer;
                 mathFormulaHistory.setText(history);
+
                 mMathFormula = mp.createMathFormula();
                 mathFormula.setText(mMathFormula);
+
+
                 answer = 0;
                 mathAnswer.setText("");
                 mathScore.setText("" + score);

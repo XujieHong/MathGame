@@ -11,13 +11,16 @@ import android.widget.Toast;
 import com.speakin.recorder.R;
 import com.speakin.recorder.module.control.MasterControlManager;
 import com.speakin.recorder.module.control.SlaveControlManager;
+import com.speakin.recorder.utils.AnswerSignal;
 import com.speakin.recorder.utils.Book;
 import com.speakin.recorder.utils.IpUtil;
+import com.speakin.recorder.utils.PullAnswerSignalParser;
 import com.speakin.recorder.utils.PullBookParser;
 
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 
@@ -46,35 +49,6 @@ public class MainActivity extends AppCompatActivity {
         masterControlManager = new MasterControlManager();
         slaveControlManager = new SlaveControlManager();
 
-        slaveControlManager.setControlManagerCallback(new SlaveControlManager.SlaveControlManagerCallback() {
-            @Override
-            public void onFoundMaster(String masterIp, JSONObject masterInfo) {
-                textView2.setText(masterIp + " " + masterInfo.toString());
-            }
-
-            @Override
-            public void onConnectedMaster(String masterIp, Exception ex) {
-                textView2.setText(masterIp + " connected");
-            }
-
-            @Override
-            public void onDisconnectMaster(String masterIp, Exception ex) {
-                textView2.setText(masterIp + " disconnected");
-            }
-
-            @Override
-            public void onReceiveMessage(String message) {
-                textView2.setText("message: " + message);
-                if(message.compareTo("Mrrrr") == 0){
-                    onMathActivityRightAnswerSignalReceived(true);
-                }else if(message.compareTo("Srrrr") == 0){
-                    onMathActivityRightAnswerSignalReceived(false);
-                }else{
-                    onMathActivityMessageReceived(message);
-                }
-            }
-        });
-
         masterControlManager.setControlManagerCallback(new MasterControlManager.MasterControlManagerCallback() {
             @Override
             public void onServerError(Exception ex) {
@@ -95,13 +69,7 @@ public class MainActivity extends AppCompatActivity {
             public void onMessageReceive(String clientSocket, String message) {
                 textView2.setText("message: " + message);
 
-                if(message.compareTo("Mrrrr") == 0){
-                    onMathActivityRightAnswerSignalReceived(true);
-                }else if(message.compareTo("Srrrr") == 0){
-                    onMathActivityRightAnswerSignalReceived(false);
-                }else{
-                    onMathActivityMessageReceived(message);
-                }
+                onMathActivityRightAnswerSignalReceived(message);
             }
 
             @Override
@@ -109,6 +77,31 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(MainActivity.this, "receive file" + filePath, Toast.LENGTH_SHORT).show();
             }
         });
+
+        slaveControlManager.setControlManagerCallback(new SlaveControlManager.SlaveControlManagerCallback() {
+            @Override
+            public void onFoundMaster(String masterIp, JSONObject masterInfo) {
+                textView2.setText(masterIp + " " + masterInfo.toString());
+            }
+
+            @Override
+            public void onConnectedMaster(String masterIp, Exception ex) {
+                textView2.setText(masterIp + " connected");
+            }
+
+            @Override
+            public void onDisconnectMaster(String masterIp, Exception ex) {
+                textView2.setText(masterIp + " disconnected");
+            }
+
+            @Override
+            public void onReceiveMessage(String message) {
+                textView2.setText("message: " + message);
+                onMathActivityMessageReceived(message);
+            }
+        });
+
+
     }
 
     private void initView() {
@@ -217,11 +210,31 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void sendRightAnswerSignal(){
-        if (isMaster) {
-            masterControlManager.send("Mrrrr");
-        } else {
-            slaveControlManager.send("Srrrr");
+
+        Calendar CD = Calendar.getInstance();
+        AnswerSignal answerSignal = new AnswerSignal();
+        answerSignal.setHour(CD.get(Calendar.HOUR));
+        answerSignal.setMinute(CD.get(Calendar.MINUTE));
+        answerSignal.setSecond(CD.get(Calendar.SECOND));
+        answerSignal.setMillisecond(CD.get(Calendar.MILLISECOND));
+
+        try{
+            PullAnswerSignalParser parser = new PullAnswerSignalParser();
+            List<AnswerSignal> answerSignals = new ArrayList<AnswerSignal>();
+
+            answerSignals.add(answerSignal);
+
+            String strBook = parser.serialize(answerSignals);
+
+            if (!isMaster) {
+                slaveControlManager.send(strBook);
+            }
+
+        }catch (Exception e){
+            Log.e("KenHong", e.getMessage());
         }
+
+
     }
 
     private void onMathActivityMessageReceived(String xmlStr){
@@ -241,7 +254,21 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void onMathActivityRightAnswerSignalReceived(boolean isMaster){
-        MathPkActivity.instance.onRightAnswerSignalReceived(isMaster);
+    private void onMathActivityRightAnswerSignalReceived(String xmlStr){
+
+        if(MathPkActivity.instance != null){
+            PullAnswerSignalParser parser = new PullAnswerSignalParser();
+            List<AnswerSignal> answerSignals;
+
+            try {
+                answerSignals = parser.parse(xmlStr);
+                for(AnswerSignal answerSignal : answerSignals ){
+                    MathPkActivity.instance.onRightAnswerSignalReceived(answerSignal);
+                }
+
+            }catch (Exception e) {
+                Log.e("KenHong", e.getMessage());
+            }
+        }
     }
 }

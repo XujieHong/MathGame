@@ -11,6 +11,7 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.speakin.recorder.R;
+import com.speakin.recorder.utils.AnswerSignal;
 import com.speakin.recorder.utils.Book;
 
 /**
@@ -155,22 +156,11 @@ public class MathPkActivity extends Activity {
         answerState = true;
     }
 
-    public void onRightAnswerSignalReceived(boolean isMaster){
-        if(isMaster){
-            Log.d("KenHong", "onRightAnswerSignalReceived" + "  = master");
-        }else{
-            Log.d("KenHong", "onRightAnswerSignalReceived" + "  = slave");
-        }
-
-        if(!isMaster && answerState){
+    public void onRightAnswerSignalReceived(AnswerSignal answerSignal){
+        if(answerState){
             slaveScore = 1;
             getRightAnswer();
         }
-
-        if(isMaster && answerState){
-            answerState = false;
-        }
-
     }
 
     private void getRightAnswer(){
@@ -183,7 +173,7 @@ public class MathPkActivity extends Activity {
             public void run() {
                 super.run();
                 try {
-                    Thread.sleep(1000);//休眠3秒
+                    Thread.sleep(200);//休眠3秒
 
                     answerState = true;
 
